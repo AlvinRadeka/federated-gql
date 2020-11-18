@@ -5,8 +5,8 @@ package graph
 
 import (
 	"context"
-	"reviews/graph/generated"
-	"reviews/graph/model"
+	"github.com/alvinradeka/federated-gql/reviews/graph/generated"
+	"github.com/alvinradeka/federated-gql/reviews/graph/model"
 )
 
 func (r *queryResolver) AllReviews(ctx context.Context) ([]*model.Review, error) {

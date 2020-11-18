@@ -5,8 +5,9 @@ package graph
 
 import (
 	"context"
-	"products/graph/generated"
-	"products/graph/model"
+
+	"github.com/alvinradeka/federated-gql/products/graph/generated"
+	"github.com/alvinradeka/federated-gql/products/graph/model"
 )
 
 func (r *queryResolver) AllProducts(ctx context.Context) ([]*model.Product, error) {

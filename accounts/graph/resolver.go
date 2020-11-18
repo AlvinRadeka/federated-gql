@@ -3,7 +3,7 @@
 // It serves as dependency injection for your app, add any dependencies you require here.
 package graph
 
-import "accounts/business/usecase"
+import "github.com/alvinradeka/federated-gql/accounts/business/usecase"
 
 // Resolver ...
 type Resolver struct {

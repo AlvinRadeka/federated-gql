@@ -1,6 +1,6 @@
 package usecase
 
-import "products/business/entity"
+import "github.com/alvinradeka/federated-gql/products/business/entity"
 
 // ProductItf ...
 type ProductItf interface {

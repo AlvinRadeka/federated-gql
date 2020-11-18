@@ -4,9 +4,10 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
-	"accounts/graph/generated"
-	"accounts/graph/model"
 	"context"
+
+	"github.com/alvinradeka/federated-gql/accounts/graph/generated"
+	"github.com/alvinradeka/federated-gql/accounts/graph/model"
 )
 
 func (r *entityResolver) FindUserByID(ctx context.Context, id string) (*model.User, error) {

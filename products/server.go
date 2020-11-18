@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"products/graph"
-	"products/graph/generated"
+	"github.com/alvinradeka/federated-gql/products/graph"
+	"github.com/alvinradeka/federated-gql/products/graph/generated"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/debug"

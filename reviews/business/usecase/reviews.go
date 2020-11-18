@@ -1,10 +1,9 @@
 package usecase
 
 import (
-	"reviews/business/entity"
-
 	accounts "github.com/alvinradeka/federated-gql/accounts/business/usecase"
 	products "github.com/alvinradeka/federated-gql/products/business/usecase"
+	"github.com/alvinradeka/federated-gql/reviews/business/entity"
 )
 
 // ReviewItf ...

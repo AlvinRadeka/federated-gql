@@ -1,6 +1,6 @@
 package graph
 
-import "reviews/business/usecase"
+import "github.com/alvinradeka/federated-gql/reviews/business/usecase"
 
 // This file will not be regenerated automatically.
 //

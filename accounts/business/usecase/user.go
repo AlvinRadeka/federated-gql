@@ -1,6 +1,6 @@
 package usecase
 
-import "accounts/business/entity"
+import "github.com/alvinradeka/federated-gql/accounts/business/entity"
 
 // UserItf ...
 type UserItf interface {

@@ -1,4 +1,4 @@
-module accounts
+module github.com/alvinradeka/federated-gql/accounts
 
 go 1.15
 

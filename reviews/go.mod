@@ -1,4 +1,4 @@
-module reviews
+module github.com/alvinradeka/federated-gql/reviews
 
 go 1.15
 

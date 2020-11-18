@@ -1,4 +1,4 @@
-module products
+module github.com/alvinradeka/federated-gql/products
 
 go 1.15
 
