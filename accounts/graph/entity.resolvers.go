@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 
+	"github.com/alvinradeka/federated-gql/accounts/business/usecase"
 	"github.com/alvinradeka/federated-gql/accounts/graph/generated"
 	"github.com/alvinradeka/federated-gql/accounts/graph/model"
 )
@@ -20,6 +21,12 @@ func (r *entityResolver) FindUserByID(ctx context.Context, id string) (*model.Us
 }
 
 // Entity returns generated.EntityResolver implementation.
-func (r *Resolver) Entity() generated.EntityResolver { return &entityResolver{r} }
+func (r *Resolver) Entity() generated.EntityResolver {
+	return &entityResolver{
+		&Resolver{
+			userUC: usecase.InitUsecase(),
+		},
+	}
+}
 
 type entityResolver struct{ *Resolver }

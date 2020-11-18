@@ -9,6 +9,8 @@ import (
 // ReviewItf ...
 type ReviewItf interface {
 	GetAllReviews() []entity.Review
+	GetReviewByProductID(id string) []entity.Review
+	GetReviewByUserID(id string) []entity.Review
 	GetProductByID(id string) entity.Product
 	GetUserByID(id string) entity.User
 }
@@ -50,10 +52,41 @@ func (r *reviewUC) GetAllReviews() []entity.Review {
 
 func (r *reviewUC) GetProductByID(id string) entity.Product {
 	product := r.productsvc.GetProductInfo(id)
-	return product
+	return entity.Product{
+		ID:    product.ID,
+		Name:  product.Name,
+		Price: product.Price,
+	}
 }
 
 func (r *reviewUC) GetUserByID(id string) entity.User {
 	user := r.accountssvc.GetUserInfo(id)
-	return user
+	return entity.User{
+		ID:   user.ID,
+		Name: user.Name,
+	}
+}
+
+func (r *reviewUC) GetReviewByProductID(id string) []entity.Review {
+	var res []entity.Review
+
+	for i := range reviews {
+		if reviews[i].ProductID == id {
+			res = append(res, reviews[i])
+		}
+	}
+
+	return res
+}
+
+func (r *reviewUC) GetReviewByUserID(id string) []entity.Review {
+	var res []entity.Review
+
+	for i := range reviews {
+		if reviews[i].ReviewerID == id {
+			res = append(res, reviews[i])
+		}
+	}
+
+	return res
 }

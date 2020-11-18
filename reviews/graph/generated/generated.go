@@ -39,6 +39,8 @@ type Config struct {
 type ResolverRoot interface {
 	Entity() EntityResolver
 	Query() QueryResolver
+	Product() ProductResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -83,6 +85,13 @@ type EntityResolver interface {
 }
 type QueryResolver interface {
 	AllReviews(ctx context.Context) ([]*model.Review, error)
+}
+
+type ProductResolver interface {
+	Reviews(ctx context.Context, obj *model.Product) ([]*model.Review, error)
+}
+type UserResolver interface {
+	Reviews(ctx context.Context, obj *model.User) ([]*model.Review, error)
 }
 
 type executableSchema struct {
@@ -506,14 +515,14 @@ func (ec *executionContext) _Product_id(ctx context.Context, field graphql.Colle
 		Object:     "Product",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return ec.resolvers.Product().Reviews(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -893,14 +902,14 @@ func (ec *executionContext) _User_reviews(ctx context.Context, field graphql.Col
 		Object:     "User",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Reviews, nil
+		return ec.resolvers.User().Reviews(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2132,10 +2141,19 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._Product_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "reviews":
-			out.Values[i] = ec._Product_reviews(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Product_reviews(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2267,10 +2285,19 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "reviews":
-			out.Values[i] = ec._User_reviews(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_reviews(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

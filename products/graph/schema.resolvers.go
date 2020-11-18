@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 
+	"github.com/alvinradeka/federated-gql/products/business/usecase"
 	"github.com/alvinradeka/federated-gql/products/graph/generated"
 	"github.com/alvinradeka/federated-gql/products/graph/model"
 )
@@ -26,6 +27,12 @@ func (r *queryResolver) AllProducts(ctx context.Context) ([]*model.Product, erro
 }
 
 // Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+func (r *Resolver) Query() generated.QueryResolver {
+	return &queryResolver{
+		&Resolver{
+			productUC: usecase.InitUsecase(),
+		},
+	}
+}
 
 type queryResolver struct{ *Resolver }

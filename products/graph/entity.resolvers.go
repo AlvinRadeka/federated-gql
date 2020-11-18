@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 
+	"github.com/alvinradeka/federated-gql/products/business/usecase"
 	"github.com/alvinradeka/federated-gql/products/graph/generated"
 	"github.com/alvinradeka/federated-gql/products/graph/model"
 )
@@ -20,6 +21,12 @@ func (r *entityResolver) FindProductByID(ctx context.Context, id string) (*model
 }
 
 // Entity returns generated.EntityResolver implementation.
-func (r *Resolver) Entity() generated.EntityResolver { return &entityResolver{r} }
+func (r *Resolver) Entity() generated.EntityResolver {
+	return &entityResolver{
+		&Resolver{
+			productUC: usecase.InitUsecase(),
+		},
+	}
+}
 
 type entityResolver struct{ *Resolver }
