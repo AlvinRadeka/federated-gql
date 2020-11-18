@@ -9,15 +9,17 @@ import (
 	"reviews/graph/model"
 )
 
-func (r *entityResolver) FindProductByUpc(ctx context.Context, upc string) (*model.Product, error) {
+func (r *entityResolver) FindProductByID(ctx context.Context, id string) (*model.Product, error) {
+	product := r.reviewUC.GetProductByID(id)
 	return &model.Product{
-		Upc: upc,
+		ID: product.ID,
 	}, nil
 }
 
 func (r *entityResolver) FindUserByID(ctx context.Context, id string) (*model.User, error) {
+	user := r.reviewUC.GetUserByID(id)
 	return &model.User{
-		ID: id,
+		ID: user.ID,
 	}, nil
 }
 

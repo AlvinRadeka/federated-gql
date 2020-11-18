@@ -1,6 +1,10 @@
+extend type Query {
+    allReviews: [Review]
+}
+
 type Review {
     body: String!
-    author: User! @provides(fields: "username")
+    reviewer: User! @provides(fields: "id")
     product: Product!
 }
 
@@ -9,7 +13,7 @@ extend type User @key(fields: "id") {
     reviews: [Review]
 }
 
-extend type Product @key(fields: "upc") {
-    upc: String! @external
+extend type Product @key(fields: "id") {
+    id: String! @external
     reviews: [Review]
 }

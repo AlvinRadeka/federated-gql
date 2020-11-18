@@ -1,9 +1,9 @@
 extend type Query {
-    topProducts(first: Int = 5): [Product]
+    allProducts: [Product]
 }
 
-type Product @key(fields: "upc") {
-    upc: String!
+type Product @key(fields: "id") {
+    id: String!
     name: String!
     price: Int!
 }

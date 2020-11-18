@@ -3,4 +3,9 @@
 // It serves as dependency injection for your app, add any dependencies you require here.
 package graph
 
-type Resolver struct{}
+import "products/business/usecase"
+
+// Resolver ...
+type Resolver struct {
+	productUC usecase.ProductItf
+}

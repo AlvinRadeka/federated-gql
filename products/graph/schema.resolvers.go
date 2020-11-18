@@ -9,8 +9,19 @@ import (
 	"products/graph/model"
 )
 
-func (r *queryResolver) TopProducts(ctx context.Context, first *int) ([]*model.Product, error) {
-	return hats, nil
+func (r *queryResolver) AllProducts(ctx context.Context) ([]*model.Product, error) {
+	var result []*model.Product
+	products := r.productUC.GetAllProducts()
+	for i := range products {
+		product := &model.Product{
+			ID:    products[i].ID,
+			Name:  products[i].Name,
+			Price: int(products[i].Price),
+		}
+		result = append(result, product)
+	}
+
+	return result, nil
 }
 
 // Query returns generated.QueryResolver implementation.

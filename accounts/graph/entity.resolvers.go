@@ -7,26 +7,18 @@ import (
 	"accounts/graph/generated"
 	"accounts/graph/model"
 	"context"
-	"log"
 )
 
 func (r *entityResolver) FindUserByID(ctx context.Context, id string) (*model.User, error) {
-	log.Println("FindUserByID with ID: " + id)
-	name := "User " + id
-	if id == "1234" {
-		name = "Me"
-	}
-
+	user := r.userUC.GetUserInfo(id)
 	return &model.User{
-		ID:       id,
-		Username: name,
+		ID:       user.ID,
+		Username: user.Name,
+		UserType: user.UserType,
 	}, nil
 }
 
 // Entity returns generated.EntityResolver implementation.
-func (r *Resolver) Entity() generated.EntityResolver {
-	log.Println("Entity Resolver for accounts")
-	return &entityResolver{r}
-}
+func (r *Resolver) Entity() generated.EntityResolver { return &entityResolver{r} }
 
 type entityResolver struct{ *Resolver }

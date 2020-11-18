@@ -9,13 +9,13 @@ import (
 	"products/graph/model"
 )
 
-func (r *entityResolver) FindProductByUpc(ctx context.Context, upc string) (*model.Product, error) {
-	for _, h := range hats {
-		if h.Upc == upc {
-			return h, nil
-		}
-	}
-	return nil, nil
+func (r *entityResolver) FindProductByID(ctx context.Context, id string) (*model.Product, error) {
+	product := r.productUC.GetProductInfo(id)
+	return &model.Product{
+		ID:    product.ID,
+		Name:  product.Name,
+		Price: int(product.Price),
+	}, nil
 }
 
 // Entity returns generated.EntityResolver implementation.

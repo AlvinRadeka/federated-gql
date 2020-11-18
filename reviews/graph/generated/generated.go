@@ -38,8 +38,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Entity() EntityResolver
-	Product() ProductResolver
-	User() UserResolver
+	Query() QueryResolver
 }
 
 type DirectiveRoot struct {
@@ -47,24 +46,25 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Entity struct {
-		FindProductByUpc func(childComplexity int, upc string) int
-		FindUserByID     func(childComplexity int, id string) int
+		FindProductByID func(childComplexity int, id string) int
+		FindUserByID    func(childComplexity int, id string) int
 	}
 
 	Product struct {
+		ID      func(childComplexity int) int
 		Reviews func(childComplexity int) int
-		Upc     func(childComplexity int) int
 	}
 
 	Query struct {
+		AllReviews         func(childComplexity int) int
 		__resolve__service func(childComplexity int) int
 		__resolve_entities func(childComplexity int, representations []map[string]interface{}) int
 	}
 
 	Review struct {
-		Author  func(childComplexity int) int
-		Body    func(childComplexity int) int
-		Product func(childComplexity int) int
+		Body     func(childComplexity int) int
+		Product  func(childComplexity int) int
+		Reviewer func(childComplexity int) int
 	}
 
 	User struct {
@@ -78,14 +78,11 @@ type ComplexityRoot struct {
 }
 
 type EntityResolver interface {
-	FindProductByUpc(ctx context.Context, upc string) (*model.Product, error)
+	FindProductByID(ctx context.Context, id string) (*model.Product, error)
 	FindUserByID(ctx context.Context, id string) (*model.User, error)
 }
-type ProductResolver interface {
-	Reviews(ctx context.Context, obj *model.Product) ([]*model.Review, error)
-}
-type UserResolver interface {
-	Reviews(ctx context.Context, obj *model.User) ([]*model.Review, error)
+type QueryResolver interface {
+	AllReviews(ctx context.Context) ([]*model.Review, error)
 }
 
 type executableSchema struct {
@@ -103,17 +100,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Entity.findProductByUpc":
-		if e.complexity.Entity.FindProductByUpc == nil {
+	case "Entity.findProductByID":
+		if e.complexity.Entity.FindProductByID == nil {
 			break
 		}
 
-		args, err := ec.field_Entity_findProductByUpc_args(context.TODO(), rawArgs)
+		args, err := ec.field_Entity_findProductByID_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Entity.FindProductByUpc(childComplexity, args["upc"].(string)), true
+		return e.complexity.Entity.FindProductByID(childComplexity, args["id"].(string)), true
 
 	case "Entity.findUserByID":
 		if e.complexity.Entity.FindUserByID == nil {
@@ -127,6 +124,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Entity.FindUserByID(childComplexity, args["id"].(string)), true
 
+	case "Product.id":
+		if e.complexity.Product.ID == nil {
+			break
+		}
+
+		return e.complexity.Product.ID(childComplexity), true
+
 	case "Product.reviews":
 		if e.complexity.Product.Reviews == nil {
 			break
@@ -134,12 +138,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Product.Reviews(childComplexity), true
 
-	case "Product.upc":
-		if e.complexity.Product.Upc == nil {
+	case "Query.allReviews":
+		if e.complexity.Query.AllReviews == nil {
 			break
 		}
 
-		return e.complexity.Product.Upc(childComplexity), true
+		return e.complexity.Query.AllReviews(childComplexity), true
 
 	case "Query._service":
 		if e.complexity.Query.__resolve__service == nil {
@@ -160,13 +164,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.__resolve_entities(childComplexity, args["representations"].([]map[string]interface{})), true
 
-	case "Review.author":
-		if e.complexity.Review.Author == nil {
-			break
-		}
-
-		return e.complexity.Review.Author(childComplexity), true
-
 	case "Review.body":
 		if e.complexity.Review.Body == nil {
 			break
@@ -180,6 +177,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Review.Product(childComplexity), true
+
+	case "Review.reviewer":
+		if e.complexity.Review.Reviewer == nil {
+			break
+		}
+
+		return e.complexity.Review.Reviewer(childComplexity), true
 
 	case "User.id":
 		if e.complexity.User.ID == nil {
@@ -252,9 +256,13 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/schema.graphqls", Input: `type Review {
+	{Name: "graph/schema.graphqls", Input: `extend type Query {
+    allReviews: [Review]
+}
+
+type Review {
     body: String!
-    author: User! @provides(fields: "username")
+    reviewer: User! @provides(fields: "id")
     product: Product!
 }
 
@@ -263,8 +271,8 @@ extend type User @key(fields: "id") {
     reviews: [Review]
 }
 
-extend type Product @key(fields: "upc") {
-    upc: String! @external
+extend type Product @key(fields: "id") {
+    id: String! @external
     reviews: [Review]
 }
 `, BuiltIn: false},
@@ -284,7 +292,7 @@ union _Entity = Product | User
 
 # fake type to build resolver interfaces for users to implement
 type Entity {
-		findProductByUpc(upc: String!,): Product!
+		findProductByID(id: String!,): Product!
 	findUserByID(id: ID!,): User!
 
 }
@@ -305,18 +313,18 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Entity_findProductByUpc_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Entity_findProductByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["upc"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("upc"))
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["upc"] = arg0
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -403,7 +411,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Entity_findProductByUpc(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Entity_findProductByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -420,7 +428,7 @@ func (ec *executionContext) _Entity_findProductByUpc(ctx context.Context, field 
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Entity_findProductByUpc_args(ctx, rawArgs)
+	args, err := ec.field_Entity_findProductByID_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -428,7 +436,7 @@ func (ec *executionContext) _Entity_findProductByUpc(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Entity().FindProductByUpc(rctx, args["upc"].(string))
+		return ec.resolvers.Entity().FindProductByID(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -487,7 +495,7 @@ func (ec *executionContext) _Entity_findUserByID(ctx context.Context, field grap
 	return ec.marshalNUser2ᚖreviewsᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Product_upc(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
+func (ec *executionContext) _Product_id(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -505,7 +513,7 @@ func (ec *executionContext) _Product_upc(ctx context.Context, field graphql.Coll
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Upc, nil
+		return obj.ID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -533,6 +541,38 @@ func (ec *executionContext) _Product_reviews(ctx context.Context, field graphql.
 		Object:     "Product",
 		Field:      field,
 		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Reviews, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Review)
+	fc.Result = res
+	return ec.marshalOReview2ᚕᚖreviewsᚋgraphᚋmodelᚐReview(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_allReviews(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
 		IsMethod:   true,
 		IsResolver: true,
 	}
@@ -540,7 +580,7 @@ func (ec *executionContext) _Product_reviews(ctx context.Context, field graphql.
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Product().Reviews(rctx, obj)
+		return ec.resolvers.Query().AllReviews(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -737,7 +777,7 @@ func (ec *executionContext) _Review_body(ctx context.Context, field graphql.Coll
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Review_author(ctx context.Context, field graphql.CollectedField, obj *model.Review) (ret graphql.Marshaler) {
+func (ec *executionContext) _Review_reviewer(ctx context.Context, field graphql.CollectedField, obj *model.Review) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -755,7 +795,7 @@ func (ec *executionContext) _Review_author(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Author, nil
+		return obj.Reviewer, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -853,14 +893,14 @@ func (ec *executionContext) _User_reviews(ctx context.Context, field graphql.Col
 		Object:     "User",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().Reviews(rctx, obj)
+		return obj.Reviews, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2039,7 +2079,7 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet) g
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Entity")
-		case "findProductByUpc":
+		case "findProductByID":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2047,7 +2087,7 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet) g
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Entity_findProductByUpc(ctx, field)
+				res = ec._Entity_findProductByID(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -2089,22 +2129,13 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Product")
-		case "upc":
-			out.Values[i] = ec._Product_upc(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._Product_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "reviews":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Product_reviews(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._Product_reviews(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2131,6 +2162,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "allReviews":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allReviews(ctx, field)
+				return res
+			})
 		case "_entities":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -2190,8 +2232,8 @@ func (ec *executionContext) _Review(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "author":
-			out.Values[i] = ec._Review_author(ctx, field, obj)
+		case "reviewer":
+			out.Values[i] = ec._Review_reviewer(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2225,19 +2267,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "reviews":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._User_reviews(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._User_reviews(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

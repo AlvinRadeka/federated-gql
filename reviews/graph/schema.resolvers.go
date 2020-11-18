@@ -9,35 +9,21 @@ import (
 	"reviews/graph/model"
 )
 
-func (r *productResolver) Reviews(ctx context.Context, obj *model.Product) ([]*model.Review, error) {
+func (r *queryResolver) AllReviews(ctx context.Context) ([]*model.Review, error) {
 	var res []*model.Review
 
-	for _, review := range reviews {
-		if review.Product.Upc == obj.Upc {
-			res = append(res, review)
+	reviews := r.reviewUC.GetAllReviews()
+	for i := range reviews {
+		review := &model.Review{
+			Body: reviews[i].Body,
 		}
+		res = append(res, review)
 	}
 
 	return res, nil
 }
 
-func (r *userResolver) Reviews(ctx context.Context, obj *model.User) ([]*model.Review, error) {
-	var res []*model.Review
+// Query returns generated.QueryResolver implementation.
+func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-	for _, review := range reviews {
-		if review.Author.ID == obj.ID {
-			res = append(res, review)
-		}
-	}
-
-	return res, nil
-}
-
-// Product returns generated.ProductResolver implementation.
-func (r *Resolver) Product() generated.ProductResolver { return &productResolver{r} }
-
-// User returns generated.UserResolver implementation.
-func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
-
-type productResolver struct{ *Resolver }
-type userResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }

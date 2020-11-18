@@ -7,14 +7,13 @@ import (
 	"accounts/graph/generated"
 	"accounts/graph/model"
 	"context"
-	"log"
 )
 
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	log.Println("Me resolver")
+	user := r.userUC.GetUserInfo("user-001")
 	return &model.User{
-		ID:       "1234",
-		Username: "Me",
+		ID:       user.ID,
+		Username: user.Name,
 	}, nil
 }
 

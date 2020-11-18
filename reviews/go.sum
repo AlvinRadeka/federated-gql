@@ -4,6 +4,9 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/agnivade/levenshtein v1.0.1/go.mod h1:CURSv5d9Uaml+FovSIICkLbAUZ9S4RqaHDIsdSBg7lM=
 github.com/agnivade/levenshtein v1.0.3 h1:M5ZnqLOoZR8ygVq0FfkXsNOKzMCk0xRiow0R5+5VkQ0=
 github.com/agnivade/levenshtein v1.0.3/go.mod h1:4SFRZbbXWLF4MU1T9Qg0pGgH3Pjs+t6ie5efyrwRJXs=
+github.com/alvinradeka/federated-gql v0.0.0-20201117085602-26e3bbf1739f h1:Vsm6HuUTROnuHQE1NDOYkca+PJaVvzXmuQZ8cO0Mw3Y=
+github.com/alvinradeka/federated-gql/accounts v0.0.0-20201117085602-26e3bbf1739f h1:ZV//jiIid2xrho4zxnxdZqmeAlK5f78JQeatwL4GyRM=
+github.com/alvinradeka/federated-gql/products v0.0.0-20201117085602-26e3bbf1739f h1:Rifq2Hdex1krVnk3eBo18RvTCdH9MLwp6z/qPM0WKf4=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/arbovm/levenshtein v0.0.0-20160628152529-48b4e1c0c4d0 h1:jfIu9sQUG6Ig+0+Ap1h4unLjW6YQJpKZVmUzxsD4E/Q=
